@@ -1,0 +1,39 @@
+dataset: electricity
+base_config: Config/journal/electricity.yaml
+seeds:
+- 2041
+- 2042
+- 2043
+screen_steps: 12000
+validation_samples: 1024
+evaluation_split: validation
+exploratory: true
+parent_selection: checkpoints/journal_search_extended/electricity/selection.json
+training_trials:
+- name: incumbent
+  train_steps: 12000
+  overrides: {}
+- name: prototype_005
+  train_steps: 12000
+  overrides:
+    model.params.prototype_loss_weight: 0.005
+- name: prototype_020
+  train_steps: 12000
+  overrides:
+    model.params.prototype_loss_weight: 0.02
+samplers:
+- name: incumbent
+  params:
+    adaptive_sampling_timesteps: 200
+    reflection_strength: 0.02
+- name: refine150
+  params:
+    adaptive_sampling_timesteps: 150
+    reflection_strength: 0.03
+- name: refine300
+  params:
+    adaptive_sampling_timesteps: 300
+    reflection_strength: 0.01
+namespace: journal_search_refinement_seed2042
+screen_seed: 2042
+plan_sha256: 551e4aae5b0777b15fc13085aa3449e1456df2d6a165d5bc7882974382f9dbd5

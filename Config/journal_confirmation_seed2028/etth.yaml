@@ -1,0 +1,56 @@
+dataset: etth
+base_config: Config/journal/etth.yaml
+screen_seed: 2028
+screen_steps: 18000
+validation_samples: 1024
+training_trials:
+- name: control
+  overrides: {}
+  samplers:
+  - name: original50
+    params:
+      adaptive_sampling_timesteps: 50
+      reflection_strength: 0.1
+- name: selected
+  overrides: &id001
+    solver.scheduler.params.warmup_lr: 0.0003
+  samplers:
+  - name: frozen_selected
+    params: &id002
+      adaptive_sampling_timesteps: 200
+      reflection_strength: 0.025
+samplers:
+- name: original50
+  params:
+    adaptive_sampling_timesteps: 50
+    reflection_strength: 0.1
+- name: incumbent_sampling
+  params:
+    adaptive_sampling_timesteps: 100
+    reflection_strength: 0.05
+- name: refined_sampling
+  params:
+    adaptive_sampling_timesteps: 200
+    reflection_strength: 0.025
+namespace: journal_confirmation_seed2028
+evaluation_split: test
+frozen_validation_choice:
+  dataset: etth
+  trial: incumbent
+  sampler: refined_sampling
+  seed: 2026
+  train_steps: 6000
+  metrics:
+    Context-FID: 6.985653
+    KL: 0.400319
+    DS_mean: 0.487805
+    DS_std: 0.0
+    PS_mean: 0.310438
+    PS_std: 0.0
+    Segment-DTW-L6: 1.212314
+    Segment-DTW-L8: 1.403521
+    Segment-DTW-L10: 1.56599
+  split: validation
+  publication_eligible: false
+  train_overrides: *id001
+  sampler_params: *id002

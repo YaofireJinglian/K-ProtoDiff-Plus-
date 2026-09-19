@@ -1,0 +1,252 @@
+diff --git a/timegan.py b/timegan.py
+index 05a2c65..da565ab 100644
+--- a/timegan.py
++++ b/timegan.py
+@@ -17,8 +17,14 @@ Note: Use original data as training set to generater synthetic data (time-series
+ """
+ 
+ # Necessary Packages
+-import tensorflow as tf
++import tensorflow.compat.v1 as tf
++import tf_slim as slim
+ import numpy as np
++import json
++import os
++import pickle
++import signal
++import time
+ from utils import extract_time, rnn_cell, random_generator, batch_generator
+ 
+ 
+@@ -36,6 +42,8 @@ def timegan (ori_data, parameters):
+   """
+   # Initialization on the Graph
+   tf.reset_default_graph()
++  if 'seed' in parameters:
++    tf.set_random_seed(parameters['seed'])
+ 
+   # Basic Parameters
+   no, seq_len, dim = np.asarray(ori_data).shape
+@@ -94,7 +102,7 @@ def timegan (ori_data, parameters):
+     with tf.variable_scope("embedder", reuse = tf.AUTO_REUSE):
+       e_cell = tf.nn.rnn_cell.MultiRNNCell([rnn_cell(module_name, hidden_dim) for _ in range(num_layers)])
+       e_outputs, e_last_states = tf.nn.dynamic_rnn(e_cell, X, dtype=tf.float32, sequence_length = T)
+-      H = tf.contrib.layers.fully_connected(e_outputs, hidden_dim, activation_fn=tf.nn.sigmoid)     
++      H = slim.fully_connected(e_outputs, hidden_dim, activation_fn=tf.nn.sigmoid)
+     return H
+       
+   def recovery (H, T):   
+@@ -110,7 +118,7 @@ def timegan (ori_data, parameters):
+     with tf.variable_scope("recovery", reuse = tf.AUTO_REUSE):       
+       r_cell = tf.nn.rnn_cell.MultiRNNCell([rnn_cell(module_name, hidden_dim) for _ in range(num_layers)])
+       r_outputs, r_last_states = tf.nn.dynamic_rnn(r_cell, H, dtype=tf.float32, sequence_length = T)
+-      X_tilde = tf.contrib.layers.fully_connected(r_outputs, dim, activation_fn=tf.nn.sigmoid) 
++      X_tilde = slim.fully_connected(r_outputs, dim, activation_fn=tf.nn.sigmoid)
+     return X_tilde
+     
+   def generator (Z, T):  
+@@ -126,7 +134,7 @@ def timegan (ori_data, parameters):
+     with tf.variable_scope("generator", reuse = tf.AUTO_REUSE):
+       e_cell = tf.nn.rnn_cell.MultiRNNCell([rnn_cell(module_name, hidden_dim) for _ in range(num_layers)])
+       e_outputs, e_last_states = tf.nn.dynamic_rnn(e_cell, Z, dtype=tf.float32, sequence_length = T)
+-      E = tf.contrib.layers.fully_connected(e_outputs, hidden_dim, activation_fn=tf.nn.sigmoid)     
++      E = slim.fully_connected(e_outputs, hidden_dim, activation_fn=tf.nn.sigmoid)
+     return E
+       
+   def supervisor (H, T): 
+@@ -142,7 +150,7 @@ def timegan (ori_data, parameters):
+     with tf.variable_scope("supervisor", reuse = tf.AUTO_REUSE):
+       e_cell = tf.nn.rnn_cell.MultiRNNCell([rnn_cell(module_name, hidden_dim) for _ in range(num_layers-1)])
+       e_outputs, e_last_states = tf.nn.dynamic_rnn(e_cell, H, dtype=tf.float32, sequence_length = T)
+-      S = tf.contrib.layers.fully_connected(e_outputs, hidden_dim, activation_fn=tf.nn.sigmoid)     
++      S = slim.fully_connected(e_outputs, hidden_dim, activation_fn=tf.nn.sigmoid)
+     return S
+           
+   def discriminator (H, T):
+@@ -158,7 +166,7 @@ def timegan (ori_data, parameters):
+     with tf.variable_scope("discriminator", reuse = tf.AUTO_REUSE):
+       d_cell = tf.nn.rnn_cell.MultiRNNCell([rnn_cell(module_name, hidden_dim) for _ in range(num_layers)])
+       d_outputs, d_last_states = tf.nn.dynamic_rnn(d_cell, H, dtype=tf.float32, sequence_length = T)
+-      Y_hat = tf.contrib.layers.fully_connected(d_outputs, 1, activation_fn=None) 
++      Y_hat = slim.fully_connected(d_outputs, 1, activation_fn=None)
+     return Y_hat   
+     
+   # Embedder & Recovery
+@@ -221,13 +229,64 @@ def timegan (ori_data, parameters):
+   GS_solver = tf.train.AdamOptimizer().minimize(G_loss_S, var_list = g_vars + s_vars)   
+         
+   ## TimeGAN training   
++  completed_phase = tf.Variable(0, trainable=False, name='completed_phase')
++  next_iteration = tf.Variable(0, trainable=False, name='next_iteration')
++  saver = tf.train.Saver(max_to_keep=2)
+   sess = tf.Session()
+   sess.run(tf.global_variables_initializer())
++  prefix = parameters.get('checkpoint_prefix')
++  progress_file = prefix + '.progress.json' if prefix else None
++  signature = {k: parameters[k] for k in ['seed', 'batch_size', 'iterations', 'module', 'hidden_dim', 'num_layer']}
++  phase, next_step = 0, 0
++  phase_timings = {}
++  def report_timing(current_phase, durations):
++    if len(durations) > 10:
++      value = float(np.mean(durations[10:]))
++      phase_timings[str(current_phase)] = value
++      print(f'STEADY_TIMING phase={current_phase} seconds_per_step={value:.6f}', flush=True)
++  if progress_file and os.path.exists(progress_file):
++    with open(progress_file) as handle:
++      saved = json.load(handle)
++    if saved['config'] != signature:
++      raise ValueError('Checkpoint configuration differs; use a separate run directory')
++    saver.restore(sess, saved['checkpoint'])
++    with open(saved['checkpoint'] + '.rng.pkl', 'rb') as handle:
++      np.random.set_state(pickle.load(handle))
++    phase, next_step = sess.run([completed_phase, next_iteration])
++    print(f'Resumed phase={phase} next_step={next_step}', flush=True)
++  stop_requested = [False]
++  def request_stop(signum, frame):
++    stop_requested[0] = True
++  previous_handlers = {sig: signal.signal(sig, request_stop) for sig in [signal.SIGTERM, signal.SIGINT]}
++  def save_progress(current_phase, step):
++    if not prefix:
++      return
++    sess.run([completed_phase.assign(current_phase), next_iteration.assign(step)])
++    path = saver.save(sess, prefix + '.resume', global_step=current_phase * iterations + step)
++    with open(path + '.rng.pkl', 'wb') as handle:
++      pickle.dump(np.random.get_state(), handle)
++    with open(progress_file + '.tmp', 'w') as handle:
++      json.dump({'checkpoint': path, 'config': signature, 'phase': current_phase, 'next_step': step}, handle)
++    os.replace(progress_file + '.tmp', progress_file)
++    print(f'Checkpoint phase={current_phase} next_step={step}', flush=True)
++  def checkpoint_step(current_phase, step):
++    if step % 1000 == 0 or stop_requested[0]:
++      save_progress(current_phase, step)
++    if stop_requested[0]:
++      sess.close()
++      raise SystemExit(75)
++  def steps(current_phase):
++    if current_phase < phase:
++      return range(0)
++    return range(next_step if current_phase == phase else 0, iterations)
+     
+   # 1. Embedding network training
+   print('Start Embedding Network Training')
+     
+-  for itt in range(iterations):
++  phase_start = time.monotonic()
++  durations = []
++  for itt in steps(0):
++    tick = time.monotonic()
+     # Set mini-batch
+     X_mb, T_mb = batch_generator(ori_data, ori_time, batch_size)           
+     # Train embedder        
+@@ -235,13 +294,22 @@ def timegan (ori_data, parameters):
+     # Checkpoint
+     if itt % 1000 == 0:
+       print('step: '+ str(itt) + '/' + str(iterations) + ', e_loss: ' + str(np.round(np.sqrt(step_e_loss),4)) ) 
++    durations.append(time.monotonic() - tick)
++    checkpoint_step(0, itt + 1)
++  report_timing(0, durations)
++  if phase <= 0:
++    save_progress(1, 0)
++  print(f'Phase 0 elapsed_seconds={time.monotonic()-phase_start:.3f}', flush=True)
+       
+   print('Finish Embedding Network Training')
+     
+   # 2. Training only with supervised loss
+   print('Start Training with Supervised Loss Only')
+     
+-  for itt in range(iterations):
++  phase_start = time.monotonic()
++  durations = []
++  for itt in steps(1):
++    tick = time.monotonic()
+     # Set mini-batch
+     X_mb, T_mb = batch_generator(ori_data, ori_time, batch_size)    
+     # Random vector generation   
+@@ -251,13 +319,22 @@ def timegan (ori_data, parameters):
+     # Checkpoint
+     if itt % 1000 == 0:
+       print('step: '+ str(itt)  + '/' + str(iterations) +', s_loss: ' + str(np.round(np.sqrt(step_g_loss_s),4)) )
++    durations.append(time.monotonic() - tick)
++    checkpoint_step(1, itt + 1)
++  report_timing(1, durations)
++  if phase <= 1:
++    save_progress(2, 0)
++  print(f'Phase 1 elapsed_seconds={time.monotonic()-phase_start:.3f}', flush=True)
+       
+   print('Finish Training with Supervised Loss Only')
+     
+   # 3. Joint Training
+   print('Start Joint Training')
+   
+-  for itt in range(iterations):
++  phase_start = time.monotonic()
++  durations = []
++  for itt in steps(2):
++    tick = time.monotonic()
+     # Generator training (twice more than discriminator training)
+     for kk in range(2):
+       # Set mini-batch
+@@ -276,6 +353,7 @@ def timegan (ori_data, parameters):
+     Z_mb = random_generator(batch_size, z_dim, T_mb, max_seq_len)
+     # Check discriminator loss before updating
+     check_d_loss = sess.run(D_loss, feed_dict={X: X_mb, T: T_mb, Z: Z_mb})
++    step_d_loss = check_d_loss
+     # Train discriminator (only when the discriminator does not work well)
+     if (check_d_loss > 0.15):        
+       _, step_d_loss = sess.run([D_solver, D_loss], feed_dict={X: X_mb, T: T_mb, Z: Z_mb})
+@@ -288,11 +366,25 @@ def timegan (ori_data, parameters):
+             ', g_loss_s: ' + str(np.round(np.sqrt(step_g_loss_s),4)) + 
+             ', g_loss_v: ' + str(np.round(step_g_loss_v,4)) + 
+             ', e_loss_t0: ' + str(np.round(np.sqrt(step_e_loss_t0),4))  )
++    durations.append(time.monotonic() - tick)
++    checkpoint_step(2, itt + 1)
++  report_timing(2, durations)
++  save_progress(3, 0)
++  print(f'Phase 2 elapsed_seconds={time.monotonic()-phase_start:.3f}', flush=True)
+   print('Finish Joint Training')
+     
+   ## Synthetic data generation
+-  Z_mb = random_generator(no, z_dim, ori_time, max_seq_len)
+-  generated_data_curr = sess.run(X_hat, feed_dict={Z: Z_mb, X: ori_data, T: ori_time})    
++  if parameters.get('checkpoint_prefix'):
++    tf.train.Saver().save(sess, parameters['checkpoint_prefix'])
++    with open(parameters['checkpoint_prefix'] + '.timings.json', 'w') as handle:
++      json.dump(phase_timings, handle, indent=2)
++  generated_batches = []
++  for start in range(0, no, batch_size):
++    end = min(start + batch_size, no)
++    times = ori_time[start:end]
++    Z_mb = random_generator(end-start, z_dim, times, max_seq_len)
++    generated_batches.append(sess.run(X_hat, feed_dict={Z: Z_mb, T: times}))
++  generated_data_curr = np.concatenate(generated_batches)
+     
+   generated_data = list()
+     
+@@ -304,4 +396,7 @@ def timegan (ori_data, parameters):
+   generated_data = generated_data * max_val
+   generated_data = generated_data + min_val
+     
++  sess.close()
++  for sig, handler in previous_handlers.items():
++    signal.signal(sig, handler)
+   return generated_data
+diff --git a/utils.py b/utils.py
+index f968e2b..d87711c 100644
+--- a/utils.py
++++ b/utils.py
+@@ -22,7 +22,7 @@ utils.py
+ 
+ ## Necessary Packages
+ import numpy as np
+-import tensorflow as tf
++import tensorflow.compat.v1 as tf
+ 
+ 
+ def train_test_divide (data_x, data_x_hat, data_t, data_t_hat, train_rate = 0.8):
+@@ -142,4 +142,4 @@ def batch_generator(data, time, batch_size):
+   X_mb = list(data[i] for i in train_idx)
+   T_mb = list(time[i] for i in train_idx)
+   
+-  return X_mb, T_mb
+\ No newline at end of file
++  return X_mb, T_mb

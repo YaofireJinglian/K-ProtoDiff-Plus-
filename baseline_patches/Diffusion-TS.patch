@@ -1,0 +1,156 @@
+diff --git a/Config/config.yaml b/Config/config.yaml
+index 8ad89be..d168bb2 100644
+--- a/Config/config.yaml
++++ b/Config/config.yaml
+@@ -20,7 +20,7 @@ model:
+ solver:
+   base_lr: 1.0e-5
+   max_epochs: 1000
+-  results_folder: ./Checkpoints_syn
++  results_folder: ../../checkpoints/Diffusion-TS/Checkpoints_syn
+   gradient_accumulate_every: 2
+   save_cycle: 100  # max_epochs // 10
+   ema:
+diff --git a/Config/eeg.yaml b/Config/eeg.yaml
+index 807eb27..a4f6265 100644
+--- a/Config/eeg.yaml
++++ b/Config/eeg.yaml
+@@ -35,7 +35,7 @@ classifier:
+ solver:
+   base_lr: 1.0e-5
+   max_epochs: 12000
+-  results_folder: ./Checkpoints_eeg
++  results_folder: ../../checkpoints/Diffusion-TS/Checkpoints_eeg
+   gradient_accumulate_every: 2
+   save_cycle: 1200  # max_epochs // 10
+   ema:
+diff --git a/Config/energy.yaml b/Config/energy.yaml
+index 97756e0..61706dd 100644
+--- a/Config/energy.yaml
++++ b/Config/energy.yaml
+@@ -20,7 +20,7 @@ model:
+ solver:
+   base_lr: 1.0e-5
+   max_epochs: 25000
+-  results_folder: ./Checkpoints_energy
++  results_folder: ../../checkpoints/Diffusion-TS/Checkpoints_energy
+   gradient_accumulate_every: 2
+   save_cycle: 2500  # max_epochs // 10
+   ema:
+diff --git a/Config/etth.yaml b/Config/etth.yaml
+index 762a15c..bb1d1c2 100644
+--- a/Config/etth.yaml
++++ b/Config/etth.yaml
+@@ -20,7 +20,7 @@ model:
+ solver:
+   base_lr: 1.0e-5
+   max_epochs: 18000
+-  results_folder: ./Checkpoints_etth
++  results_folder: ../../checkpoints/Diffusion-TS/Checkpoints_etth
+   gradient_accumulate_every: 2
+   save_cycle: 1800  # max_epochs // 10
+   ema:
+diff --git a/Config/fmri.yaml b/Config/fmri.yaml
+index 4acb05b..f98a175 100644
+--- a/Config/fmri.yaml
++++ b/Config/fmri.yaml
+@@ -20,7 +20,7 @@ model:
+ solver:
+   base_lr: 1.0e-5
+   max_epochs: 15000
+-  results_folder: ./Checkpoints_fmri
++  results_folder: ../../checkpoints/Diffusion-TS/Checkpoints_fmri
+   gradient_accumulate_every: 2
+   save_cycle: 1500  # max_epochs // 10
+   ema:
+diff --git a/Config/mujoco.yaml b/Config/mujoco.yaml
+index 65d055d..3c58a3e 100644
+--- a/Config/mujoco.yaml
++++ b/Config/mujoco.yaml
+@@ -20,7 +20,7 @@ model:
+ solver:
+   base_lr: 1.0e-5
+   max_epochs: 14000
+-  results_folder: ./Checkpoints_mujoco
++  results_folder: ../../checkpoints/Diffusion-TS/Checkpoints_mujoco
+   gradient_accumulate_every: 2
+   save_cycle: 1400  # max_epochs // 10
+   ema:
+diff --git a/Config/mujoco_sssd.yaml b/Config/mujoco_sssd.yaml
+index 1ec6193..f04821c 100644
+--- a/Config/mujoco_sssd.yaml
++++ b/Config/mujoco_sssd.yaml
+@@ -20,7 +20,7 @@ model:
+ solver:
+   base_lr: 1.0e-5
+   max_epochs: 12000
+-  results_folder: ./Checkpoints_mujoco_sssd
++  results_folder: ../../checkpoints/Diffusion-TS/Checkpoints_mujoco_sssd
+   gradient_accumulate_every: 2
+   save_cycle: 1200  # max_epochs // 10
+   ema:
+diff --git a/Config/sines.yaml b/Config/sines.yaml
+index aa95bfd..4c1848f 100644
+--- a/Config/sines.yaml
++++ b/Config/sines.yaml
+@@ -20,7 +20,7 @@ model:
+ solver:
+   base_lr: 1.0e-5
+   max_epochs: 12000
+-  results_folder: ./Checkpoints_sine
++  results_folder: ../../checkpoints/Diffusion-TS/Checkpoints_sine
+   gradient_accumulate_every: 2
+   save_cycle: 1200  # max_epochs // 10
+   ema:
+diff --git a/Config/solar.yaml b/Config/solar.yaml
+index 2dda217..5d29063 100644
+--- a/Config/solar.yaml
++++ b/Config/solar.yaml
+@@ -20,7 +20,7 @@ model:
+ solver:
+   base_lr: 1.0e-5
+   max_epochs: 1500
+-  results_folder: ./Checkpoints_solar
++  results_folder: ../../checkpoints/Diffusion-TS/Checkpoints_solar
+   gradient_accumulate_every: 2
+   save_cycle: 150  # max_epochs // 10
+   ema:
+diff --git a/Config/solar_update.yaml b/Config/solar_update.yaml
+index 258fecc..a328335 100644
+--- a/Config/solar_update.yaml
++++ b/Config/solar_update.yaml
+@@ -20,7 +20,7 @@ model:
+ solver:
+   base_lr: 1.0e-5
+   max_epochs: 1000
+-  results_folder: ./Checkpoints_solar_nips
++  results_folder: ../../checkpoints/Diffusion-TS/Checkpoints_solar_nips
+   gradient_accumulate_every: 2
+   save_cycle: 100  # max_epochs // 10
+   ema:
+diff --git a/Config/stocks.yaml b/Config/stocks.yaml
+index 672bed0..dae7b3a 100644
+--- a/Config/stocks.yaml
++++ b/Config/stocks.yaml
+@@ -20,7 +20,7 @@ model:
+ solver:
+   base_lr: 1.0e-5
+   max_epochs: 10000
+-  results_folder: ./Checkpoints_stock
++  results_folder: ../../checkpoints/Diffusion-TS/Checkpoints_stock
+   gradient_accumulate_every: 2
+   save_cycle: 1000  # max_epochs // 10
+   ema:
+diff --git a/main.py b/main.py
+index f01dac4..6423b9a 100644
+--- a/main.py
++++ b/main.py
+@@ -88,7 +88,7 @@ def main():
+     else:
+         trainer.load(args.milestone)
+         dataset = dataloader_info['dataset']
+-        samples = trainer.sample(num=len(dataset), size_every=2001, shape=[dataset.window, dataset.var_num])
++        samples = trainer.sample(num=len(dataset), size_every=128, shape=[dataset.window, dataset.var_num])
+         if dataset.auto_norm:
+             samples = unnormalize_to_zero_to_one(samples)
+             # samples = dataset.scaler.inverse_transform(samples.reshape(-1, samples.shape[-1])).reshape(samples.shape)

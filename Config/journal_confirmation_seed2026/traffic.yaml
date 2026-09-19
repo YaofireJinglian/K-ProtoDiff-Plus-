@@ -1,0 +1,55 @@
+dataset: traffic
+base_config: Config/journal/traffic.yaml
+screen_seed: 2026
+screen_steps: 25000
+validation_samples: 1024
+training_trials:
+- name: control
+  overrides: {}
+  samplers:
+  - name: original50
+    params:
+      adaptive_sampling_timesteps: 50
+      reflection_strength: 0.1
+  warm_start_from: /data/dyh_data/0806/K-ProtoDiff/checkpoints/journal_search_round2/traffic/control/latest.pt
+- name: selected
+  overrides: &id001
+    solver.scheduler.params.warmup_lr: 0.0003
+    model.params.prototype_loss_weight: 0.01
+  samplers:
+  - name: frozen_selected
+    params: &id002
+      adaptive_sampling_timesteps: 100
+      reflection_strength: 0.05
+  warm_start_from: /data/dyh_data/0806/K-ProtoDiff/checkpoints/journal_search_round2/traffic/refined/latest.pt
+samplers:
+- name: original50
+  params:
+    adaptive_sampling_timesteps: 50
+    reflection_strength: 0.1
+- name: refined_sampling
+  params:
+    adaptive_sampling_timesteps: 100
+    reflection_strength: 0.05
+namespace: journal_confirmation_seed2026
+evaluation_split: test
+frozen_validation_choice:
+  dataset: traffic
+  trial: refined
+  sampler: refined_sampling
+  seed: 2026
+  train_steps: 6000
+  metrics:
+    Context-FID: 8.082091
+    KL: 0.057994
+    DS_mean: 0.5
+    DS_std: 0.0
+    PS_mean: 0.026333
+    PS_std: 0.0
+    Segment-DTW-L6: 10.053534
+    Segment-DTW-L8: 11.552293
+    Segment-DTW-L10: 12.736117
+  split: validation
+  publication_eligible: false
+  train_overrides: *id001
+  sampler_params: *id002

@@ -1,0 +1,42 @@
+dataset: illness
+base_config: Config/journal/illness.yaml
+seeds:
+- 2041
+- 2042
+- 2043
+screen_steps: 6000
+validation_samples: 1024
+evaluation_split: validation
+exploratory: true
+parent_selection: checkpoints/journal_search_extended/illness/selection.json
+training_trials:
+- name: incumbent
+  train_steps: 6000
+  overrides:
+    solver.ema.decay: 0.999
+- name: prototype_005
+  train_steps: 6000
+  overrides:
+    solver.ema.decay: 0.999
+    model.params.prototype_loss_weight: 0.005
+- name: prototype_020
+  train_steps: 6000
+  overrides:
+    solver.ema.decay: 0.999
+    model.params.prototype_loss_weight: 0.02
+samplers:
+- name: incumbent
+  params:
+    adaptive_sampling_timesteps: 200
+    reflection_strength: 0.02
+- name: refine150
+  params:
+    adaptive_sampling_timesteps: 150
+    reflection_strength: 0.03
+- name: refine300
+  params:
+    adaptive_sampling_timesteps: 300
+    reflection_strength: 0.01
+namespace: journal_search_refinement_seed2042
+screen_seed: 2042
+plan_sha256: b831d769a30f044f2983edd007611ac53af7e40e6afd8c6ebdaecaf0085b1299

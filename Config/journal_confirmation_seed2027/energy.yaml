@@ -1,0 +1,57 @@
+dataset: energy
+base_config: Config/journal/energy.yaml
+screen_seed: 2027
+screen_steps: 25000
+validation_samples: 1024
+training_trials:
+- name: control
+  overrides: {}
+  samplers:
+  - name: original50
+    params:
+      adaptive_sampling_timesteps: 50
+      reflection_strength: 0.1
+- name: selected
+  overrides: &id001
+    model.params.prototype_loss_weight: 0.01
+    solver.scheduler.params.warmup_lr: 0.0003
+  samplers:
+  - name: frozen_selected
+    params: &id002
+      adaptive_sampling_timesteps: 50
+      reflection_strength: 0.1
+samplers:
+- name: original50
+  params:
+    adaptive_sampling_timesteps: 50
+    reflection_strength: 0.1
+- name: incumbent_sampling
+  params:
+    adaptive_sampling_timesteps: 200
+    reflection_strength: 0.02
+- name: refined_sampling
+  params:
+    adaptive_sampling_timesteps: 300
+    reflection_strength: 0.01
+namespace: journal_confirmation_seed2027
+evaluation_split: test
+frozen_validation_choice:
+  dataset: energy
+  trial: refined
+  sampler: original50
+  seed: 2026
+  train_steps: 6000
+  metrics:
+    Context-FID: 10.596493
+    KL: 0.241304
+    DS_mean: 0.497561
+    DS_std: 0.0
+    PS_mean: 0.283538
+    PS_std: 0.0
+    Segment-DTW-L6: 3.235887
+    Segment-DTW-L8: 3.734186
+    Segment-DTW-L10: 4.166553
+  split: validation
+  publication_eligible: false
+  train_overrides: *id001
+  sampler_params: *id002

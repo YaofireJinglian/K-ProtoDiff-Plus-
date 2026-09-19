@@ -1,0 +1,13 @@
+diff --git a/src/vae/vae_base.py b/src/vae/vae_base.py
+index 7dbc3b4..f89ad0a 100644
+--- a/src/vae/vae_base.py
++++ b/src/vae/vae_base.py
+@@ -50,7 +50,7 @@ class BaseVariationalAutoencoder(Model, ABC):
+         self.decoder = None
+ 
+     def fit_on_data(self, train_data, max_epochs=1000, verbose=0):
+-        loss_to_monitor = "total_loss"
++        loss_to_monitor = "loss"
+         early_stopping = EarlyStopping(
+             monitor=loss_to_monitor, min_delta=1e-2, patience=50, mode="min"
+         )

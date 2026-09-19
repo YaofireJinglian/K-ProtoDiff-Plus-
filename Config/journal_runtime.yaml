@@ -1,0 +1,39 @@
+allowed_gpus:
+- 0
+- 1
+- 2
+- 3
+- 4
+- 5
+baseline_allowed_gpus:
+- 0
+- 1
+- 2
+- 3
+search_allowed_gpus:
+- 4
+- 5
+parameter_search_enabled: false
+tuned_main_confirmation_gpus:
+- 4
+- 5
+ablation_reserved_gpus: []
+pytorch_python: .venv-cu130/bin/python
+experiments_paused: false
+shared_gpu_launch_gpus:
+- 0
+- 1
+shared_gpu_min_free_mib: 16000
+baseline_resume_request: resume_20260914_gpu01
+poll_seconds: 15
+baseline_interleave: true
+baseline_cancel_request: cancel_remaining_gtgan_20260916
+baseline_cancel_methods:
+- gtgan
+baseline_recovery_request: traffic_pad_mmd_chunked_20260912
+baseline_recovery_targets:
+- traffic__pad_ts__seed2026
+- traffic__pad_ts__seed2027
+- traffic__pad_ts__seed2028
+cuda_probe_interval_seconds: 300
+cuda_recovery_request: exclude_gpu0_20260908

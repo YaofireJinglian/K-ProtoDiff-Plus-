@@ -1,0 +1,37 @@
+[
+  {
+    "name": "Diffusion-TS",
+    "url": "https://github.com/Y-debug-sys/Diffusion-TS.git",
+    "revision": "566307e6cf2d8095e58de4c6e3a6ae965b69b5b5",
+    "patch": "baseline_patches/Diffusion-TS.patch"
+  },
+  {
+    "name": "GT-GAN",
+    "url": "https://github.com/Jinsung-Jeon/GT-GAN.git",
+    "revision": "360c79edb08c09c2b018483c7dd7ddd18533a8cd",
+    "patch": "baseline_patches/GT-GAN.patch"
+  },
+  {
+    "name": "PaD-TS",
+    "url": "https://github.com/wmd3i/PaD-TS.git",
+    "revision": "4ec60058b32d0731d729c046c36aecdb3ae0e471",
+    "patch": "baseline_patches/PaD-TS.patch"
+  },
+  {
+    "name": "TimeGAN",
+    "url": "https://github.com/jsyoon0823/TimeGAN.git",
+    "revision": "8f6181cb9b9d2fa0c930cd902411d9ac8a308e07",
+    "patch": "baseline_patches/TimeGAN.patch"
+  },
+  {
+    "name": "TimeVAE",
+    "url": "https://github.com/abudesai/timeVAE.git",
+    "revision": "9914576bd44a6facbc94a594a82dd14724969a50",
+    "patch": "baseline_patches/TimeVAE.patch"
+  },
+  {
+    "name": "TimeVQVAE",
+    "url": "https://github.com/ML4ITS/TimeVQVAE.git",
+    "revision": "39f98e99cb103ea00694d01c65fd6e7a49416d24"
+  }
+]

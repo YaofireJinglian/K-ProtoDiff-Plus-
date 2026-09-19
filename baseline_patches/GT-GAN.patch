@@ -1,0 +1,99 @@
+diff --git a/GTGAN_energy.py b/GTGAN_energy.py
+index 514823d..d1cdca8 100644
+--- a/GTGAN_energy.py
++++ b/GTGAN_energy.py
+@@ -881,6 +881,9 @@ def train(
+             torch.save(discriminator.state_dict(), path +
+                        "/discriminator{}.pt".format(str(step)))
+ 
++            if getattr(args, 'skip_eval', False):
++                continue
++
+             seq_len = x.shape[1]
+             input_size = x.shape[2] - 1
+             dataset_size = dataset.size
+@@ -956,7 +959,7 @@ def train(
+     supervisor.eval()
+     recovery.eval()
+     
+-    generated_data_curr = x_hat.cpu().numpy()
++    generated_data_curr = x_hat.detach().cpu().numpy()
+     generated_data = list()
+ 
+     return generated_data
+@@ -1019,12 +1022,22 @@ def main():
+     parser.add_argument("--log_time", type=int, default=2)
+     parser.add_argument("--missing_value", type=float, default=0.0)
+     parser.add_argument("--first_epoch",type=int,default=10000)
++    parser.add_argument('--seed', type=int, default=7777)
++    parser.add_argument('--fmri-array', type=str)
++    parser.add_argument('--skip-eval', action='store_true')
+     here = pathlib.Path(__file__).resolve().parent
+     args = parser.parse_args()
++    torch.manual_seed(args.seed)
++    torch.cuda.manual_seed_all(args.seed)
++    np.random.seed(args.seed)
+     args.effective_shape = args.hidden_dim
+     # args.aug_mapping = True
+     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+     print(device)
++    if args.data == 'fmri':
++        from fmri_adapter import FMRIDataset
++        dataset = FMRIDataset(args.fmri_array)
++        input_size = dataset.original_sample.shape[-1]
+     if args.data == 'stock':
+         data_path = here / 'datasets/stock_data.csv'
+         dataset = TimeDataset(data_path, args.seq_len,'stock', args.missing_value)
+@@ -1053,7 +1066,7 @@ def main():
+ 
+     path = here
+     print(path)
+-    args.save_dir = str(path)+'/'+args.save_dir
++    args.save_dir = os.path.join(str(path), args.save_dir)
+     os.makedirs(args.save_dir,exist_ok=True)
+     def cvt(x): return x.type(torch.float32).to(device, non_blocking=True)
+ 
+@@ -1138,6 +1151,19 @@ def main():
+             args.gamma,
+         )
+         # visualize(dataset, device, generated_data,args)
++        if args.skip_eval:
++            generator.eval()
++            recovery.eval()
++            pieces = []
++            with torch.no_grad():
++                for start in range(0, len(dataset), args.batch_size):
++                    count = min(args.batch_size, len(dataset)-start)
++                    times = torch.arange(args.seq_len, device=device, dtype=torch.float32)[None,:,None].expand(count,-1,1)
++                    z = torch.randn(count, args.seq_len, args.effective_shape, device=device)
++                    h_hat = run_model(args, generator, z, times, device, z=True)
++                    pieces.append(recovery(h_hat, times[:,:,0]).cpu().numpy())
++            np.save(os.path.join(args.save_dir, 'samples.npy'), np.concatenate(pieces))
++            return
+     else:                             
+         if args.missing_value == 0.0:
+             path = 'energy_model/energy'
+diff --git a/time_dataset.py b/time_dataset.py
+index caa1a55..5812be7 100644
+--- a/time_dataset.py
++++ b/time_dataset.py
+@@ -4,12 +4,10 @@ import sys
+ import os
+ import pathlib
+ import urllib.request
+-import torchaudio
+ import tarfile
+ import zipfile
+ import math
+ import csv
+-import sktime.utils.load_data
+ import collections as co
+ import controldiffeq
+ 
+@@ -622,4 +620,4 @@ class TimeDataset_regular(torch.utils.data.Dataset):
+         return self.samples[index]
+ 
+     def __len__(self):
+-        return len(self.samples)
+\ No newline at end of file
++        return len(self.samples)

@@ -1,0 +1,42 @@
+dataset: fmri
+base_config: Config/journal/fmri.yaml
+seeds:
+- 2031
+- 2032
+- 2033
+screen_steps: 6000
+validation_samples: 1024
+evaluation_split: validation
+exploratory: true
+training_trials:
+- name: control
+  overrides: {}
+- name: lr_prototype
+  overrides:
+    solver.scheduler.params.warmup_lr: 0.0003
+    model.params.prototype_loss_weight: 0.01
+- name: slower_ema
+  overrides:
+    solver.ema.decay: 0.999
+- name: alternate_loss
+  overrides:
+    model.params.loss_type: l2
+- name: longer_training
+  train_steps: 12000
+  overrides: {}
+samplers:
+- name: original50
+  params:
+    adaptive_sampling_timesteps: 50
+    reflection_strength: 0.1
+- name: gentle100
+  params:
+    adaptive_sampling_timesteps: 100
+    reflection_strength: 0.05
+- name: gentle200
+  params:
+    adaptive_sampling_timesteps: 200
+    reflection_strength: 0.02
+namespace: journal_search_extended_seed2033
+screen_seed: 2033
+plan_sha256: 7bd5d1e9b0d73617b8a4d1cff7d00d1ff502f41fd3fd6b105d6200dae43bbfee

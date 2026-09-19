@@ -1,0 +1,57 @@
+dataset: weather
+base_config: Config/journal/weather.yaml
+screen_seed: 2027
+screen_steps: 25000
+validation_samples: 1024
+training_trials:
+- name: control
+  overrides: {}
+  samplers:
+  - name: original50
+    params:
+      adaptive_sampling_timesteps: 50
+      reflection_strength: 0.1
+- name: selected
+  overrides: &id001
+    solver.scheduler.params.warmup_lr: 0.0003
+    model.params.prototype_loss_weight: 0.01
+  samplers:
+  - name: frozen_selected
+    params: &id002
+      adaptive_sampling_timesteps: 200
+      reflection_strength: 0.025
+samplers:
+- name: original50
+  params:
+    adaptive_sampling_timesteps: 50
+    reflection_strength: 0.1
+- name: incumbent_sampling
+  params:
+    adaptive_sampling_timesteps: 100
+    reflection_strength: 0.05
+- name: refined_sampling
+  params:
+    adaptive_sampling_timesteps: 200
+    reflection_strength: 0.025
+namespace: journal_confirmation_seed2027
+evaluation_split: test
+frozen_validation_choice:
+  dataset: weather
+  trial: refined
+  sampler: refined_sampling
+  seed: 2026
+  train_steps: 6000
+  metrics:
+    Context-FID: 1.471898
+    KL: 0.056102
+    DS_mean: 0.495122
+    DS_std: 0.0
+    PS_mean: 0.011994
+    PS_std: 0.0
+    Segment-DTW-L6: 1.937608
+    Segment-DTW-L8: 2.241423
+    Segment-DTW-L10: 2.50273
+  split: validation
+  publication_eligible: false
+  train_overrides: *id001
+  sampler_params: *id002

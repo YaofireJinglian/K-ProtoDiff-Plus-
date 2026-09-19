@@ -1,0 +1,145 @@
+diff --git a/eval_utils/MMD.py b/eval_utils/MMD.py
+index 94911cc..48a1610 100644
+--- a/eval_utils/MMD.py
++++ b/eval_utils/MMD.py
+@@ -66,6 +66,26 @@ def MMD(x, y, kernel):
+ 
+ 
+ def BMMD(x, y, kernel):
++    # Correlation features grow quadratically with input channels. Process
++    # independent features in chunks and recompute them during backward.
++    # Every feature, sample pair and kernel bandwidth is retained.
++    limit = 1024 * 1024
++    chunk = max(1, limit // (x.shape[1] * y.shape[1]))
++    if x.shape[0] <= chunk:
++        return _BMMD_dense(x, y, kernel)
++    from torch.utils.checkpoint import checkpoint
++    values = []
++    for start in range(0, x.shape[0], chunk):
++        a, b = x[start:start + chunk], y[start:start + chunk]
++        if torch.is_grad_enabled() and (a.requires_grad or b.requires_grad):
++            values.append(checkpoint(lambda u, v: _BMMD_dense(u, v, kernel),
++                                     a, b, use_reentrant=False))
++        else:
++            values.append(_BMMD_dense(a, b, kernel))
++    return torch.cat(values)
++
++
++def _BMMD_dense(x, y, kernel):
+     """Empirical maximum mean discrepancy. The lower the result
+        the more evidence that distributions are the same.
+ 
+@@ -127,4 +147,4 @@ def VDS_Naive(x,y,kernel):
+         idx = np.random.randint(0, x.shape[0]*x.shape[1], 10000)
+         lst.append(MMD(x[:,:,i].flatten()[idx].unsqueeze(-1).cuda(),y[:,:,i].flatten()[idx].unsqueeze(-1).cuda(), kernel))
+         torch.cuda.empty_cache()
+-    return torch.tensor(lst).float()
+\ No newline at end of file
++    return torch.tensor(lst).float()
+diff --git a/run.py b/run.py
+index 0459df5..985fbdc 100644
+--- a/run.py
++++ b/run.py
+@@ -1,6 +1,7 @@
+ import torch
+ import argparse
+ import numpy as np
++import random
+ from resample import UniformSampler, Batch_Same_Sampler
+ from Model import PaD_TS
+ from diffmodel_init import create_gaussian_diffusion
+@@ -11,13 +12,6 @@ from data_preprocessing.real_dataloader import fMRIDataset
+ from data_preprocessing.mujoco_dataloader import MuJoCoDataset
+ from torchsummary import summary
+ from data_preprocessing.sampling import sampling
+-from eval_run import (
+-    discriminative_score,
+-    predictive_score,
+-    BMMD_score,
+-    BMMD_score_naive,
+-    VDS_score,
+-)
+ 
+ 
+ if __name__ == "__main__":
+@@ -35,8 +29,21 @@ if __name__ == "__main__":
+     parser.add_argument(
+         "-steps", "-s", default=0, type=int, help="Training Step", required=False
+     )
++    parser.add_argument("--seed", default=2026, type=int, help="Experiment seed")
++    parser.add_argument("--resume", default=None, help="Local training checkpoint to resume")
++    parser.add_argument(
++        "--save-dir", default=None, help="Override the configured output directory"
++    )
++    parser.add_argument(
++        "--skip-eval", action="store_true", help="Generate samples without built-in evaluation"
++    )
+     args = parser.parse_args()
+ 
++    random.seed(args.seed)
++    np.random.seed(args.seed)
++    torch.manual_seed(args.seed)
++    torch.cuda.manual_seed_all(args.seed)
++
+     if args.data == "energy":
+         from configs.energy_config import (
+             Training_args,
+@@ -95,6 +102,9 @@ if __name__ == "__main__":
+     if args.steps != 0:
+         train_arg.lr_anneal_steps = args.steps
+ 
++    if args.save_dir is not None:
++        train_arg.save_dir = args.save_dir.rstrip("/") + "/"
++
+     print("======Load Data======")
+     if d_arg.name == "sine":
+         dataset = SineDataset(
+@@ -186,7 +196,7 @@ if __name__ == "__main__":
+         schedule_sampler=schedule_sampler,
+         mmd_alpha=train_arg.mmd_alpha,
+     )
+-    summary(model)
++    print('Model parameters:', sum(p.numel() for p in model.parameters()))
+     print("Loss Function: ", diff_arg.loss)
+     print("Save Directory: ", train_arg.save_dir)
+     print("Schedule Sampler: ", train_arg.schedule_sampler)
+@@ -199,6 +209,12 @@ if __name__ == "__main__":
+     print("Hidden: ", model_arg.hidden_size)
+ 
+     print("======Training======")
++    if args.resume:
++        state = torch.load(args.resume, map_location=trainer.device, weights_only=False)
++        trainer.model.load_state_dict(state['model_state_dict'])
++        trainer.opt.load_state_dict(state['opt_state_dict'])
++        trainer.step = int(state['step'])
++        print(f"Resuming from step {trainer.step}: {args.resume}", flush=True)
+     trainer.train()
+     print("======Done======")
+ 
+@@ -217,6 +233,11 @@ if __name__ == "__main__":
+     )
+     print(f"{train_arg.save_dir}ddpm_fake_{d_arg.name}_{dataset.window}.npy")
+ 
++    if args.skip_eval:
++        raise SystemExit(0)
++
++    from eval_run import discriminative_score, predictive_score, VDS_score, BMMD_score_naive
++
+     print("======Diff Eval======")
+     np_fake = np.array(concatenated_tensor.detach().cpu())
+     print("======Discriminative Score======")
+diff --git a/training.py b/training.py
+index 1d3da70..3f12fe7 100644
+--- a/training.py
++++ b/training.py
+@@ -58,9 +58,7 @@ class Trainer:
+         """
+         Train the model for a given number of steps.
+         """
+-        self.step = 0
+-
+-        with tqdm(total=self.lr_anneal_steps) as pbar:
++        with tqdm(total=self.lr_anneal_steps, initial=self.step) as pbar:
+             while self.step < self.lr_anneal_steps:
+                 self.opt.zero_grad()
+                 data = next(self.next_batch()).to(self.device)
