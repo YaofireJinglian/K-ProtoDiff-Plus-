@@ -14,3 +14,7 @@ Data/datasets/
 *.pth
 .idea/
 .vscode/
+results/
+paper_experiments/
+baselines/
+.pytest_cache/

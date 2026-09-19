@@ -1,0 +1,2 @@
+# Optional discriminative/predictive metrics; Python 3.11.
+tensorflow-cpu==2.15.1

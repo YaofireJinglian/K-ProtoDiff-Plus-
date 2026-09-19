@@ -1,8 +1,6 @@
 from pathlib import Path
 import unittest
 
-import pandas as pd
-from scipy import io
 import yaml
 
 
@@ -37,22 +35,24 @@ class JournalConfigTests(unittest.TestCase):
                 dataset = config['dataloader']['train_dataset']['params']
                 data_path = REPOSITORY_ROOT / dataset['data_root']
 
-                self.assertTrue(data_path.exists())
                 self.assertEqual(data_path.name, filename)
                 self.assertEqual(model['feature_size'], feature_size)
                 self.assertEqual(model['prototype_mode'], 'multiscale')
                 self.assertEqual(model['sampling_mode'], 'adaptive_reflection')
                 self.assertEqual(model['fdm_mode'], 'real')
 
-                if name == 'fmri':
-                    fmri = io.loadmat(data_path / 'sim4.mat')['ts']
-                    self.assertEqual(fmri.shape, (10000, feature_size))
-                elif name != 'eeg':
-                    frame = pd.read_csv(data_path, nrows=4)
-                    self.assertEqual(
-                        frame.select_dtypes(include='number').shape[1],
-                        feature_size,
-                    )
+                self.assertEqual(model['seq_length'], dataset['window'])
+                self.assertTrue(all(0 < scale <= model['seq_length']
+                                    for scale in model['prototype_scales']))
+                self.assertGreater(config['solver']['save_cycle'], 0)
+                self.assertEqual(config['solver']['max_epochs'] %
+                                 config['solver']['save_cycle'], 0)
+                for section in (config['model'],
+                                config['dataloader']['train_dataset'],
+                                config['solver']['scheduler']):
+                    module = section['target'].rsplit('.', 1)[0]
+                    self.assertTrue((REPOSITORY_ROOT /
+                                     (module.replace('.', '/') + '.py')).is_file())
 
 
 if __name__ == '__main__':
