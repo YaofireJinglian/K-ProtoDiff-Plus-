@@ -8,7 +8,6 @@
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](#installation)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.7.1-EE4C2C?logo=pytorch&logoColor=white)](#installation)
 [![Task](https://img.shields.io/badge/Task-Time_Series_Generation-087F8C)](#overview)
-[![Conference predecessor](https://img.shields.io/badge/Predecessor-AAAI_2026-8B5CF6)](https://doi.org/10.1609/aaai.v40i25.39237)
 
 [Overview](#overview) | [Quick start](#quick-start) | [Datasets](#datasets) | [Evaluation](#evaluation) | [Citation](#citation)
 
