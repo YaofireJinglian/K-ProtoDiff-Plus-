@@ -119,6 +119,8 @@ python run.py --name stocks_seed2027 --config_file Config/journal/stocks.yaml --
 
 ## Datasets
 
+**[Data sources and download index](datasets/README.md)**: links, expected filenames, preparation, and attribution for all ten datasets.
+
 Choose a configuration under [`Config/journal/`](Config/journal/) to switch datasets.
 
 | Dataset | Configuration | Dataset | Configuration |

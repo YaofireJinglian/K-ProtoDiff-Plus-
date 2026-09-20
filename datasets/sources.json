@@ -1,0 +1,60 @@
+{
+  "description": "Source index from the repository download scripts; not an archive of experiment-server files.",
+  "datasets": [
+    {
+      "dataset": "ETTh",
+      "local_path": "Data/datasets/ETTh.csv",
+      "download_url": "https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTh1.csv"
+    },
+    {
+      "dataset": "Electricity",
+      "local_path": "Data/datasets/electricity.csv",
+      "download_url": "https://huggingface.co/datasets/AutonLab/Timeseries-PILE/resolve/main/forecasting/autoformer/electricity.csv?download=true"
+    },
+    {
+      "dataset": "Traffic",
+      "local_path": "Data/datasets/traffic.csv",
+      "download_url": "https://huggingface.co/datasets/AutonLab/Timeseries-PILE/resolve/main/forecasting/autoformer/traffic.csv?download=true"
+    },
+    {
+      "dataset": "Weather",
+      "local_path": "Data/datasets/weather.csv",
+      "download_url": "https://huggingface.co/datasets/AutonLab/Timeseries-PILE/resolve/main/forecasting/autoformer/weather.csv?download=true"
+    },
+    {
+      "dataset": "Illness",
+      "local_path": "Data/datasets/national_illness.csv",
+      "download_url": "https://huggingface.co/datasets/AutonLab/Timeseries-PILE/resolve/main/forecasting/autoformer/national_illness.csv?download=true"
+    },
+    {
+      "dataset": "Exchange",
+      "local_path": "Data/datasets/exchange_rate.csv",
+      "download_url": "https://huggingface.co/datasets/AutonLab/Timeseries-PILE/resolve/main/forecasting/autoformer/exchange_rate.csv?download=true"
+    },
+    {
+      "dataset": "Stocks",
+      "local_path": "Data/datasets/stock_data.csv",
+      "download_url": "https://raw.githubusercontent.com/jsyoon0823/TimeGAN/master/data/stock_data.csv"
+    },
+    {
+      "dataset": "Energy",
+      "local_path": "Data/datasets/energy_data.csv",
+      "download_url": "https://archive.ics.uci.edu/static/public/374/appliances+energy+prediction.zip",
+      "source_url": "https://doi.org/10.24432/C5VC8G",
+      "license": "CC-BY-4.0"
+    },
+    {
+      "dataset": "EEG",
+      "local_path": "Data/datasets/EEG_Eye_State.arff",
+      "download_url": "https://archive.ics.uci.edu/static/public/264/eeg+eye+state.zip",
+      "source_url": "https://doi.org/10.24432/C57G7J",
+      "license": "CC-BY-4.0"
+    },
+    {
+      "dataset": "fMRI",
+      "local_path": "Data/datasets/fMRI/sim4.mat",
+      "download_url": "https://drive.google.com/uc?id=11DI22zKWtHjXMnNGPWNUbyGz-JiEtZy6",
+      "sha256": "ea9e41cf9aceb00bbb887e11a447ba9965401c20557507ca914e20521e67a0b8"
+    }
+  ]
+}
